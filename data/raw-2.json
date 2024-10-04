@@ -1,0 +1,22 @@
+[
+    {
+        "timestamp": "2024-01-01T13:15:00.000Z",
+        "dataAsset": "jupiter",
+        "iotreadings": {
+            "value1": 13,
+            "value2": 220,
+            "value3": 110
+        }
+    },
+    {
+        "timestamp": "2024-01-01T13:15:00.000Z",
+        "dataAsset": "jupiter",
+        "iotreadings": {
+            "value1": 77,
+            "value2": 22,
+            "value3": 79,
+            "value4": 11,
+            "value5": 101
+        }
+    }
+]

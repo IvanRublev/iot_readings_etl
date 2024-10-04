@@ -1,0 +1,24 @@
+[
+    {
+        "timestamp": "2023-04-01T13:15:00.000Z",
+        "dataAsset": "mars",
+        "iotreadings": {
+            "value1": 3,
+            "value2": 20,
+            "value3": 1,
+            "value4": 4,
+            "value5": 0
+        }
+    },
+    {
+        "timestamp": "2023-04-01T13:30:00.000Z",
+        "dataAsset": "mars",
+        "iotreadings": {
+            "value1": 22,
+            "value2": 22,
+            "value3": 79,
+            "value4": 11,
+            "value5": 10
+        }
+    }
+]

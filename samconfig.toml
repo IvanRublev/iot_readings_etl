@@ -1,0 +1,10 @@
+version = 0.1
+[local.deploy.parameters]
+stack_name = "medallion-lakehouse"
+resolve_s3 = true
+s3_prefix = "medallion-lakehouse"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []

@@ -1,0 +1,36 @@
+{
+    "Records": [
+        {
+            "body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"us-east-1\", \"eventTime\": \"2024-10-02T14:44:57.987Z\", \"eventName\": \"ObjectCreated:Put\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"c15f3f7a\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"ecd6c29c\", \"bucket\": {\"name\": \"medallion-lakehouse-s3bronze\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::medallion-lakehouse-s3bronze\"}, \"object\": {\"key\": \"2024/10/02/job_328e430e-2569-46f2-8ca7-2fd8eb7f1549/raw-2.json\", \"sequencer\": \"0055AED6DCD90281E5\", \"eTag\": \"5fff5c0e3839dbacd5029103b4beace8\", \"size\": 469}}}]}",
+            "receiptHandle": "ODNkODAzNjEtOWU5Yi00NmZlLTlhYzItYTg5NDgwNDhlNWJhIGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6bWVkYWxsaW9uLWxha2Vob3VzZS1yYXctc3FzLXF1ZXVlIDQ1ZDVjOTliLTdlODMtNGEwMS1hN2I2LTY4MzFjODZmNzdmYSAxNzI3ODgwMjk4LjExNzYzOTU=",
+            "md5OfBody": "ce6f305b3085463db816e56f88850aa4",
+            "eventSourceARN": "arn:aws:sqs:us-east-1:000000000000:medallion-lakehouse-raw-sqs-queue",
+            "eventSource": "aws:sqs",
+            "awsRegion": "us-east-1",
+            "messageId": "45d5c99b-7e83-4a01-a7b6-6831c86f77fa",
+            "attributes": {
+                "SenderId": "000000000000",
+                "SentTimestamp": "1727880298011",
+                "ApproximateReceiveCount": "1",
+                "ApproximateFirstReceiveTimestamp": "1727880298117"
+            },
+            "messageAttributes": {}
+        },
+        {
+            "body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"us-east-1\", \"eventTime\": \"2024-10-02T14:44:58.031Z\", \"eventName\": \"ObjectCreated:Put\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"d80d750d\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"ecd6c29c\", \"bucket\": {\"name\": \"medallion-lakehouse-s3bronze\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::medallion-lakehouse-s3bronze\"}, \"object\": {\"key\": \"2024/10/02/job_328e430e-2569-46f2-8ca7-2fd8eb7f1549/raw-1.json\", \"sequencer\": \"0055AED6DCD90281E5\", \"eTag\": \"529196c3bcec84573ee902c554728ee8\", \"size\": 508}}}]}",
+            "receiptHandle": "ODE0NGQ2YTAtYzlkZi00OTdkLWEyMjEtMjJlOTExYjhlZTU2IGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6bWVkYWxsaW9uLWxha2Vob3VzZS1yYXctc3FzLXF1ZXVlIGI5MjQwODZkLWZkNWUtNDI3NS05N2E3LTA2YjNiY2I2YjNmYiAxNzI3ODgwMjk4LjExNzgzOTY=",
+            "md5OfBody": "fe537952059afd86197d01362f403fd6",
+            "eventSourceARN": "arn:aws:sqs:us-east-1:000000000000:medallion-lakehouse-raw-sqs-queue",
+            "eventSource": "aws:sqs",
+            "awsRegion": "us-east-1",
+            "messageId": "b924086d-fd5e-4275-97a7-06b3bcb6b3fb",
+            "attributes": {
+                "SenderId": "000000000000",
+                "SentTimestamp": "1727880298084",
+                "ApproximateReceiveCount": "1",
+                "ApproximateFirstReceiveTimestamp": "1727880298117"
+            },
+            "messageAttributes": {}
+        }
+    ]
+}

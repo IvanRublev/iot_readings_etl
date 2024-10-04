@@ -1,0 +1,19 @@
+export DEBUG=1
+export ENFORCE_IAM=1
+export LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT=60
+export LOCALSTACK_AUTH_TOKEN=<<your localstack pro Personal Auth Token>>
+
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+
+export SAM_CLI_TELEMETRY=0
+
+export UPLOADER_AWS_ACCESS_KEY_ID=<<S3BronzeUploadUserAccessKeyId>>
+export UPLOADER_AWS_SECRET_ACCESS_KEY=<<S3BronzeUploadUserSecretAccessKey>>
+export UPLOADER_RAW_DATA_BUCKET_NAME=medallion-lakehouse-s3bronze
+
+export DOWNLOADER_AWS_ACCESS_KEY_ID=<<S3SilverDownloadUserAccessKeyId>>
+export DOWNLOADER_AWS_SECRET_ACCESS_KEY=<<S3SilverDownloadUserSecretAccessKey>>
+export DOWNLOADER_DAILY_PARQUET_BUCKET_NAME=medallion-lakehouse-s3bronze

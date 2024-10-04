@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+pythonpath = ["src"]
+markers = [
+    "integration: marks tests as integration tests"
+]
+timeout = 120
+
+[tool.ruff]
+line-length = 120

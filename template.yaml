@@ -1,0 +1,352 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template for ETL Medallion Lakehouse Pipeline
+
+Parameters:
+  AWSEndpoint:
+    Type: String
+    # We specify endpoint as a domain name explicitly to enable connection to AWS services utilizing hostPrefix in URLs.
+    # f.e. for sync execution of Step Functions.
+    Default: http://localhost.localstack.cloud:4566
+    Description: AWS endpoint URL for services in this stack
+
+  S3BronzeBucketName:
+    Type: String
+    Default: s3bronze
+    Description: Name of the S3 Bronze bucket
+
+  FilesProcessorMaxConcurrency:
+    Type: Number
+    Default: 2
+    Description: Max concurrency for Raw data FilesProcessor execution in step function
+
+  RawDataFilesPerFilesProcessor:
+    Type: Number
+    Default: 5
+    Description: Number of Raw data files to be processed by each FilesProcessor
+
+  RawSQSQueueBatchSize:
+    Type: Number
+    Default: 10
+    Description: Batch size for Raw data file event messages, should equal FilesProcessorMaxConcurrency * RawDataFilesPerFilesProcessor
+
+Globals:
+  Function:
+    Environment:
+      Variables:
+        AWS_ENDPOINT_URL: !Ref AWSEndpoint
+
+Resources:
+  ### Entities  
+  # S3 Bronze Bucket (Raw data files)
+  S3Bronze:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${S3BronzeBucketName}
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt RawSQSQueue.Arn
+    DependsOn: S3BronzeToRawSQSQueuePolicy
+
+  # S3 Silver Bucket (daily Parquet files)
+  S3Silver:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-s3silver
+
+  # SQS Queue for Raw data file events
+  RawSQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-raw-sqs-queue
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 5
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RawSQSDeadLetterQueue.Arn
+        maxReceiveCount: 72
+
+  # Dead Letter Queue for RawSQSQueue
+  RawSQSDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-raw-sqs-dlq
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  # Lambda Function for Raw data file events pooling
+  S3BronzeLambdaPoolingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-s3bronze-file-events-pooling-lambda
+      CodeUri: ./src/lambda_pooling/
+      Handler: s3bronze_file_events_pooling.lambda_handler
+      Runtime: python3.9
+      MemorySize: 256
+      ReservedConcurrentExecutions: 1
+      Timeout: 60 # On change -> adjust VisibilityTimeout and maxReceiveCount for RawSQSQueue as explained below.
+      # We want to execute this lambda sequentially for message batches coming from the queue.
+      # As we set the ReservedConcurrentExecutions to 1, and the event source mapping MaximumConcurrency to 2,
+      # we would initially have two lambda invocations at once with the second lambda function failing to continue.
+      # That will activate lambda's exponential backoff mechanism for retrying failed message batches.
+      #
+      # Given lambda's Timeout = 60 seconds, the exponential backoff means that event source mapping 
+      # will increase wait time for 1, 2, 4, 8, 16, ... 2^i seconds to fetch the next batch of messages to process. 
+      # Until the iteration i=7, when it will wait for 64 seconds in the worst case scenario.
+      #
+      # This means that the first 7 batches will fail until the lambda's backoff mechanism adjusts to the individual
+      # lambda's processing time. We need the last batch to stay in the queue for 64 * 6 = 360 seconds (6 minutes)
+      # to give it a chance to be processed. 
+      #
+      # Considering the optimistic scenario when lambda can finish in less than 5 seconds 
+      # we can set SQS's VisibilityTimeout to 5 seconds and maxReceiveCount as 360 / 5 = 72.
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !GetAtt RawSQSQueue.QueueName
+        - Version: '2012-10-17' # Otherwise deployment failed on S3BronzeLambdaPoolingFunctionSQSEvent creation 
+          Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-s3bronze-file-events-pooling-lambda
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - states:StartSyncExecution
+              Resource: !Ref DataAssetProcessingStateMachine
+      AssumeRolePolicyDocument: # Otherwise deployment failed on S3BronzeLambdaPoolingFunctionSQSEvent creation
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - pipes.amazonaws.com
+            Action: sts:AssumeRole
+      Environment:
+        Variables:
+          DATA_PROCESSING_STATE_MACHINE_ARN: !GetAtt DataAssetProcessingStateMachine.Arn
+          RAW_DATA_FILES_PER_FILES_PROCESSOR: !Ref RawDataFilesPerFilesProcessor
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt RawSQSQueue.Arn
+            BatchSize: !Ref RawSQSQueueBatchSize
+            # Set the following value to the time uploader script takes to upload 
+            # initial RawSQSQueueBatchSize count of Raw data files to s3bronze bucket.
+            MaximumBatchingWindowInSeconds: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
+
+  # Step Function for data asset processing
+  DataAssetProcessingStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub ${AWS::StackName}-data-asset-processing
+      StateMachineType: EXPRESS
+      Definition: 
+        Comment: Data Asset Processing State Machine
+        StartAt: Map
+        States:
+          Map:
+            Type: Map
+            MaxConcurrency: !Ref FilesProcessorMaxConcurrency # 40 max due to INLINE mode
+            ItemsPath: $ # each item is 256 KB max due to INLINE mode
+            ResultPath: $
+            Next: Aggregate Daily Parquet Files
+            ItemProcessor:
+              ProcessorConfig:
+                Mode: INLINE
+              StartAt: ProcessFile
+              States:
+                ProcessFile:
+                  Type: Task
+                  Resource: !GetAtt FilesProcessorFunction.Arn
+                  End: true
+          Aggregate Daily Parquet Files:
+            Type: Task
+            Resource: !GetAtt ParquetFilesProcessorFunction.Arn
+            End: true
+      RoleArn: !GetAtt DataAssetProcessingStateMachineRunFunctionsRole.Arn
+
+  # FilesProcessor Lambda Function which turns Raw data files into 15min chunked Parquet files
+  FilesProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-files-processor-lambda
+      CodeUri: ./src/lambda_processing/
+      Handler: files_processor.lambda_handler
+      Runtime: python3.9
+      MemorySize: 300
+      Timeout: 60
+      Environment:
+        Variables:
+          RAW_DATA_FILES_BUCKET_NAME: !Ref S3Bronze
+          PARQUET_FILES_BUCKET_NAME: !Ref S3Silver
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:HeadObject
+              Resource:
+                - !GetAtt S3Bronze.Arn
+                - !Sub ${S3Bronze.Arn}/*
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource:
+                - !GetAtt S3Silver.Arn
+                - !Sub ${S3Silver.Arn}/*
+
+  ParquetFilesProcessorFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub ${AWS::StackName}-parquet-files-processor-lambda
+        CodeUri: ./src/lambda_processing/
+        Handler: parquet_files_processor.lambda_handler
+        Runtime: python3.9
+        MemorySize: 512
+        Timeout: 60
+        Environment:
+          Variables:
+            PARQUET_FILES_BUCKET_NAME: !Ref S3Silver
+        Policies:
+          - Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:HeadObject
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt S3Silver.Arn
+                  - !Sub ${S3Silver.Arn}/*
+
+  ### Roles
+  DataAssetProcessingStateMachineRunFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt FilesProcessorFunction.Arn
+  
+  ### Policies
+  S3BronzeToRawSQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RawSQSQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: SQS:SendMessage
+            Resource: !GetAtt RawSQSQueue.Arn
+            Condition:
+              ArnEquals:
+                # We construct the ARN manually to break the circular dependency on S3Bronze
+                aws:SourceArn: !Sub arn:aws:s3:::${AWS::StackName}-${S3BronzeBucketName}
+
+  S3BronzeBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bronze
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowS3BronzeUploadUser
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt S3BronzeUploadUser.Arn
+            Action:
+              - s3:PutObject
+              - s3:ListBucket
+            Resource:
+              - !GetAtt S3Bronze.Arn
+              - !Sub ${S3Bronze.Arn}/*
+
+  S3SilverBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Silver
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowS3SilverDownloadUser
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt S3SilverDownloadUser.Arn
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !GetAtt S3Silver.Arn
+              - !Sub ${S3Silver.Arn}/*
+
+  ## Users
+  S3BronzeUploadUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub ${AWS::StackName}-s3bronze-upload-user
+
+  S3SilverDownloadUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub ${AWS::StackName}-s3silver-download-user
+
+  ## Access keys
+  S3BronzeUploadUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref S3BronzeUploadUser
+
+  S3SilverDownloadUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref S3SilverDownloadUser
+
+Outputs:
+  RawSQSDeadLetterQueue:
+    Description: URL of the Raw data file event SQS Dead Letter Queue
+    Value: !Ref RawSQSDeadLetterQueue
+  S3BronzeName:
+    Description: Name of the Bronze S3 Bucket
+    Value: !Ref S3Bronze
+  S3BronzeUploadUserAccessKeyId:
+    Description: Access key ID for the S3BronzeUploadUser
+    Value: !Ref S3BronzeUploadUserAccessKey
+  S3BronzeUploadUserSecretAccessKey:
+    Description: Secret access key for the S3BronzeUploadUser
+    Value: !GetAtt S3BronzeUploadUserAccessKey.SecretAccessKey
+  S3SilverName:
+    Description: Name of the Silver S3 Bucket
+    Value: !Ref S3Silver
+  S3SilverDownloadUserAccessKeyId:
+    Description: Access key ID for the S3SilverDownloadUser
+    Value: !Ref S3SilverDownloadUserAccessKey
+  S3SilverDownloadUserSecretAccessKey:
+    Description: Secret access key for the S3SilverDownloadUser
+    Value: !GetAtt S3SilverDownloadUserAccessKey.SecretAccessKey
