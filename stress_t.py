@@ -11,7 +11,7 @@ import uuid
 from tests.factories import build_data_asset, dump_raw_data_file
 
 UPLOADER_SQS_QUEUE_URL = (
-    "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/medallion-lakehouse-raw-sqs-dlq"
+    "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/medallion-lakehouse-raw-sqs-queue"
 )
 UPLOADER_RAW_DATA_BUCKET_NAME = "medallion-lakehouse-s3bronze"
 

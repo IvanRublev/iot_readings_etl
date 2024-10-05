@@ -38,11 +38,11 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
     uploaded_file_keys = []
 
     for jbpd_parts, source_keys in source_key_by_jbpd.items():
+        print(f"Downloading {len(source_keys)} Parquet files from s3://{bucket_name}")
         downloaded_files = []
         for key in source_keys:
             target_file_path = os.path.join(source_files_path, key)
             os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
-            print(f"Downloading s3://{bucket_name}/{key} to {target_file_path}")
             s3_client.download_file(bucket_name, key, target_file_path)
             downloaded_files.append(target_file_path)
 
@@ -66,6 +66,7 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
             max_rows_per_group=MAX_ROWS_PER_GROUP,
         )
 
+        print(f"Uploading {os.path.basename(daily_parquet_path)} to s3://{bucket_name}")
         keys = upload_directory_to_s3(s3_client, daily_parquet_path, bucket_name, target_key)
         uploaded_file_keys.extend(keys)
 
@@ -94,8 +95,6 @@ def upload_directory_to_s3(s3_client, local_directory, bucket, file_key_prefix):
             local_path = os.path.join(root, filename)
             relative_path = os.path.relpath(local_path, local_directory)
             s3_path = os.path.join(file_key_prefix, relative_path)
-
-            print(f"Uploading {local_path} to s3://{bucket}/{s3_path}")
             s3_client.upload_file(local_path, bucket, s3_path)
             uploaded_file_keys.append(s3_path)
 

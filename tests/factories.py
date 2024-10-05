@@ -43,7 +43,10 @@ def build_parquet_dataframe(**kwargs):
     faker = Faker()
     timestamp = faker.iso8601()
     planet = random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"])
-    readings = {f"iotreadings_value{i}": random.randint(0, 100) for i in range(1, random.randint(0, 100))}
+    iotreadings_count = kwargs.pop("iotreadings_count", 0)
+    readings = {
+        f"iotreadings_value{i}": random.randint(0, 100) for i in range(1, random.randint(iotreadings_count, 100))
+    }
     row = strict_merge(
         {
             "timestamp": timestamp,

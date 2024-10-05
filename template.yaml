@@ -286,6 +286,7 @@ Resources:
               AWS: !GetAtt S3SilverDownloadUser.Arn
             Action:
               - s3:GetObject
+              - s3:HeadObject
               - s3:ListBucket
             Resource:
               - !GetAtt S3Silver.Arn

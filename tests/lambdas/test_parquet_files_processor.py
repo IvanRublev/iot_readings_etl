@@ -63,8 +63,8 @@ def test_pass_lambda_handler_given_chunked_parquet_files_assembles_them_into_dai
     dump_source_files(
         temp_dir,
         [
-            (file1, build_parquet_dataframe(iotreadings_value1=100)),
-            (file2, build_parquet_dataframe(iotreadings_value2=47)),
+            (file1, build_parquet_dataframe(iotreadings_count=1)),
+            (file2, build_parquet_dataframe(iotreadings_count=2)),
         ],
     )
 

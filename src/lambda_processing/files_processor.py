@@ -32,11 +32,11 @@ def lambda_handler(files_list, context, s3_client=None, temp_dir=None, invocatio
     directory_paths_to_upload = []
 
     # Download and process files one by one to avoid spike load on S3
+    print(f"Downloading and processing {len(files_list)} Raw data files from s3://{source_bucket}")
     for file_key in files_list:
         job_subdirectory = os.path.basename(os.path.dirname(file_key))
         file_name = os.path.basename(file_key)
         file_path = os.path.join(source_files_directory, source_bucket, job_subdirectory, file_name)
-        print(f"Downloading s3://{source_bucket}/{file_key} to {file_path}")
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         s3_client.download_file(source_bucket, file_key, file_path)
 
@@ -50,6 +50,7 @@ def lambda_handler(files_list, context, s3_client=None, temp_dir=None, invocatio
     # Upload parquet files when all of them are ready, to avoid partial uploads
     destination_bucket = os.environ["PARQUET_FILES_BUCKET_NAME"]
     uploaded_file_keys = []
+    print(f"Uploading {len(directory_paths_to_upload)} items of 15min Parquet files to s3://{destination_bucket}")
     for directory_path in directory_paths_to_upload:
         file_key_prefix = os.path.relpath(directory_path, generated_files_directory)
         file_key_prefix = os.path.join("15min_chunks", file_key_prefix)
@@ -133,8 +134,6 @@ def upload_directory_to_s3(s3_client, local_directory, bucket, file_key_prefix):
             local_path = os.path.join(root, filename)
             relative_path = os.path.relpath(local_path, local_directory)
             s3_path = os.path.join(file_key_prefix, relative_path)
-
-            print(f"Uploading {local_path} to s3://{bucket}/{s3_path}")
             s3_client.upload_file(local_path, bucket, s3_path)
             uploaded_file_keys.append(s3_path)
 
