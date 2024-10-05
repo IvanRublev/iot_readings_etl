@@ -1,7 +1,7 @@
 import boto3
 import json
 import os
-import pandas as pd
+import pyarrow as pa
 import shutil
 import tempfile
 import uuid
@@ -10,7 +10,7 @@ from pyarrow import dataset as ds
 from datetime import datetime
 
 
-MAX_ROWS_PER_FILE = 1000000
+MAX_ROWS_PER_FILE = 100000
 MAX_ROWS_PER_GROUP = 10000  # Dataset writer will batch incoming data and only write the row groups to the disk when sufficient rows have accumulated.
 
 
@@ -90,27 +90,31 @@ def dump_to_parquet(data_assets, output_directory_path, invocation_id):
     for file_path, assets in asset_per_file_path.items():
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        append_df = pd.DataFrame(assets)
-        file_path_append = file_path + ".append"
-        append_df.to_parquet(file_path_append, engine="pyarrow", index=False)
-        append_dataset = ds.dataset(file_path_append, format="parquet")
+        table = pa.Table.from_pylist(assets)
+        append_dataset = ds.dataset(table)
 
+        original_file_path = None
         if os.path.exists(file_path):
-            original_dataset = ds.dataset(file_path, format="parquet")
+            original_file_path = file_path + ".orig"
+            os.rename(file_path, original_file_path)
+            original_dataset = ds.dataset(original_file_path, format="parquet")
             joined_dataset = ds.dataset([original_dataset, append_dataset])
         else:
             joined_dataset = append_dataset
 
+        write_options = ds.ParquetFileFormat().make_write_options(compression="snappy")
         ds.write_dataset(
             joined_dataset,
             file_path,
             format="parquet",
             basename_template="part-{i}.parquet",
             existing_data_behavior="overwrite_or_ignore",
+            file_options=write_options,
             max_rows_per_file=MAX_ROWS_PER_FILE,
             max_rows_per_group=MAX_ROWS_PER_GROUP,
         )
-        os.remove(file_path_append)
+        if original_file_path:
+            shutil.rmtree(original_file_path)
 
     return list(asset_per_file_path.keys())
 

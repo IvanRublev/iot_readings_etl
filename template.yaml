@@ -22,7 +22,7 @@ Parameters:
 
   RawDataFilesPerFilesProcessor:
     Type: Number
-    Default: 5
+    Default: 5 # Adjust S3BronzeLambdaPoolingFunction.Timeout according to the time of processing this amount of files
     Description: Number of Raw data files to be processed by each FilesProcessor
 
   RawSQSQueueBatchSize:
@@ -67,7 +67,7 @@ Resources:
       VisibilityTimeout: 5
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt RawSQSDeadLetterQueue.Arn
-        maxReceiveCount: 72
+        maxReceiveCount: 3
 
   # Dead Letter Queue for RawSQSQueue
   RawSQSDeadLetterQueue:
@@ -85,23 +85,8 @@ Resources:
       Handler: s3bronze_file_events_pooling.lambda_handler
       Runtime: python3.9
       MemorySize: 256
-      ReservedConcurrentExecutions: 1
-      Timeout: 60 # On change -> adjust VisibilityTimeout and maxReceiveCount for RawSQSQueue as explained below.
-      # We want to execute this lambda sequentially for message batches coming from the queue.
-      # As we set the ReservedConcurrentExecutions to 1, and the event source mapping MaximumConcurrency to 2,
-      # we would initially have two lambda invocations at once with the second lambda function failing to continue.
-      # That will activate lambda's exponential backoff mechanism for retrying failed message batches.
-      #
-      # Given lambda's Timeout = 60 seconds, the exponential backoff means that event source mapping 
-      # will increase wait time for 1, 2, 4, 8, 16, ... 2^i seconds to fetch the next batch of messages to process. 
-      # Until the iteration i=7, when it will wait for 64 seconds in the worst case scenario.
-      #
-      # This means that the first 7 batches will fail until the lambda's backoff mechanism adjusts to the individual
-      # lambda's processing time. We need the last batch to stay in the queue for 64 * 6 = 360 seconds (6 minutes)
-      # to give it a chance to be processed. 
-      #
-      # Considering the optimistic scenario when lambda can finish in less than 5 seconds 
-      # we can set SQS's VisibilityTimeout to 5 seconds and maxReceiveCount as 360 / 5 = 72.
+      ReservedConcurrentExecutions: 4 # Make sure it's greater than SQSEvent.MaximumConcurrency to avoid SQS overpull
+      Timeout: 60
       Policies:
         - SQSPollerPolicy:
             QueueName: !GetAtt RawSQSQueue.QueueName
@@ -329,6 +314,9 @@ Resources:
       UserName: !Ref S3SilverDownloadUser
 
 Outputs:
+  RawSQSQueue:
+    Description: URL of the Raw data file event SQS Queue
+    Value: !Ref RawSQSQueue
   RawSQSDeadLetterQueue:
     Description: URL of the Raw data file event SQS Dead Letter Queue
     Value: !Ref RawSQSDeadLetterQueue

@@ -41,6 +41,9 @@ build/
 *.sqlite
 .vscode/
 
+# Temp files
+dd/
+
 # Lock files
 *.lock
 

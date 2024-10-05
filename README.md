@@ -17,9 +17,11 @@ Resources:
 
 ## How to setup for local development
 
+Make sure the Docker is [installed](https://docs.docker.com/desktop/install/mac-install/).
+
 Install the Python version with [asdf](https://asdf-vm.com/guide/getting-started.html) package manager,
 [direnv](https://direnv.net/docs/installation.html) and [make](https://www.gnu.org/software/make/manual/make.html).
-On macOS this can be donw with Homebrew:
+On macOS this can be done with Homebrew:
 
 ```
 brew install asdf direnv make
