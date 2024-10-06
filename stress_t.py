@@ -120,7 +120,7 @@ def main():
     if args.warmup:
         if args.warmup[1] % args.warmup[0] != 0:
             raise ValueError("MAX must be divisible by STEP")
-        
+
         for i in range(args.warmup[0], args.warmup[1] + 1, args.warmup[0]):
             files_count = i
             print(

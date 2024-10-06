@@ -73,8 +73,7 @@ def dump_to_parquet(data_assets, output_directory_path, invocation_id):
     asset_per_file_path = {}
 
     for data_asset in data_assets:
-        # Clean data
-        data_asset["dataAsset"] = data_asset["dataAsset"].strip()
+        normalize_inplace(data_asset)
         product = data_asset["dataAsset"]
 
         timestamp = datetime.fromisoformat(data_asset["timestamp"].replace("Z", "+00:00"))
@@ -82,8 +81,6 @@ def dump_to_parquet(data_assets, output_directory_path, invocation_id):
         file_name = f"{timestamp.strftime('%Y-%m-%dT%H')}_{hour_quarter_min}m-{invocation_id}.parquet"
 
         file_path = os.path.join(output_directory_path, product, file_name)
-
-        normalize_inplace(data_asset)
 
         if file_path in asset_per_file_path:
             asset_per_file_path[file_path].append(data_asset)
@@ -127,6 +124,8 @@ def normalize_inplace(data_asset):
     iotreadings = data_asset.pop("iotreadings", {})
     for key, value in iotreadings.items():
         data_asset[f"iotreadings_{key}"] = value
+    # Clean data
+    data_asset["dataAsset"] = data_asset["dataAsset"].strip()
 
 
 def upload_directory_to_s3(s3_client, local_directory, bucket, file_key_prefix):
