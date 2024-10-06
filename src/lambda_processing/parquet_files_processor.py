@@ -23,6 +23,7 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
     bucket_name = os.environ["PARQUET_FILES_BUCKET_NAME"]
 
     source_keys_list = sum(chunked_parquet_files, [])
+    print(f"Total: {len(source_keys_list)} file keys.")
     # jbpd -> job_id, bucket, product, day
     source_key_by_jbpd = {}
     for source_key in source_keys_list:

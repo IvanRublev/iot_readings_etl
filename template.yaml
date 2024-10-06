@@ -49,7 +49,7 @@ Parameters:
 
   FilesProcessorMaxConcurrency:
     Type: Number
-    Default: 4
+    Default: 3
     Description: Max concurrency for Raw data FilesProcessor execution in step function
 
   RawDataFilesPerFilesProcessor:
@@ -112,7 +112,7 @@ Resources:
       CodeUri: ./src/lambda_pooling/
       Handler: s3bronze_file_events_pooling.lambda_handler
       Runtime: python3.9
-      MemorySize: 256
+      MemorySize: 128
       ReservedConcurrentExecutions: !Ref S3BronzeLambdaPoolingFunctionReservedConcurrency
       Timeout: !Ref FilesProcessorFunctionTimeout
       Policies:
@@ -195,7 +195,7 @@ Resources:
       CodeUri: ./src/lambda_processing/
       Handler: files_processor.lambda_handler
       Runtime: python3.9
-      MemorySize: 300
+      MemorySize: 256
       Timeout: !Ref FilesProcessorFunctionTimeout
       Environment:
         Variables:

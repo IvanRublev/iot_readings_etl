@@ -9,6 +9,8 @@ def lambda_handler(trigger_event, context, sqs=None, stepfunctions=None):
     if file_keys_list == []:
         return None
 
+    print(f"Trigger event has following file keys: {file_keys_list}")
+
     files_per_processor = int(os.environ["RAW_DATA_FILES_PER_PROCESSOR"])
     file_processors_count = int(os.environ["FILE_PROCESSORS_COUNT"])
     total_files_count = file_processors_count * files_per_processor

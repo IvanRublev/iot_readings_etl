@@ -37,12 +37,12 @@ def generate_stress_test_data(raw_data_directory, files_count, data_assets_count
         data_assets.append(data_asset)
         print(".", end="", flush=True)
 
-    file_path = os.path.join(raw_data_directory, f"raw_data_{1}.json")
+    file_path = os.path.join(raw_data_directory, "raw_data_1.json")
     dump_raw_data_file(data_assets, file_path)
     file_size = os.path.getsize(file_path)
     # copy file to get requested count
-    for file_num in range(1, files_count):
-        shutil.copy(file_path, os.path.join(raw_data_directory, f"raw_data_{file_num + 1}.json"))
+    for file_num in range(2, files_count + 1):
+        shutil.copy(file_path, os.path.join(raw_data_directory, f"raw_data_{file_num}.json"))
 
     print("")
     print(f"Generated {files_count} files with {data_assets_count} records each.")
@@ -117,10 +117,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.warmup[1] % args.warmup[0] != 0:
-        raise ValueError("MAX must be divisible by STEP")
-
-    if args.warmup[0]:
+    if args.warmup:
+        if args.warmup[1] % args.warmup[0] != 0:
+            raise ValueError("MAX must be divisible by STEP")
+        
         for i in range(args.warmup[0], args.warmup[1] + 1, args.warmup[0]):
             files_count = i
             print(
