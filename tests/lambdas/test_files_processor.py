@@ -29,6 +29,9 @@ def temp_dir():
         yield tmpdirname
 
 
+# Lambda handler tests
+
+
 def test_pass_lambda_handler_given_no_files_returns_empty_list():
     assert lambda_handler([], {}) == []
 
@@ -107,6 +110,9 @@ def test_pass_lambda_handler_given_file_list_removes_downloaded_and_generated_fi
     assert not os.path.exists(os.path.join(temp_dir, "generated_files"))
 
 
+# Dump to parquet tests
+
+
 def test_pass_dump_to_parquet_given_altertnative_timestamps_writes_events_to_separate_15min_parquet_files(temp_dir):
     output_path = os.path.join(temp_dir, str(uuid.uuid4()))
     data_asset_timestamp_1 = build_data_asset(dataAsset="mars", timestamp="2024-09-30T13:44:01.000Z")
@@ -172,6 +178,9 @@ def test_pass_dump_to_parqeut_given_existing_parquet_and_new_data_asset_keys_ext
     assert row3["iotreadings_value1"] == 2
     assert pd.isna(row3["iotreadings_value2"])
     assert pd.isna(row3["iotreadings_value3"])
+
+
+# Normalize data asset tests
 
 
 def test_pass_normalize_data_asset_given_data_asset_without_iotreadings_returns_same_dict():

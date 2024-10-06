@@ -57,6 +57,8 @@ def lambda_handler(files_list, context, s3_client=None, temp_dir=None, invocatio
         s3_file_keys = upload_directory_to_s3(s3_client, directory_path, destination_bucket, file_key_prefix)
         uploaded_file_keys.extend(s3_file_keys)
 
+    print("Upload finished.")
+
     # Remove downloaded and generated files
     if os.path.exists(source_files_directory):
         shutil.rmtree(source_files_directory)

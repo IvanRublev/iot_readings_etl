@@ -1,0 +1,28 @@
+{
+    "Messages": [
+        {
+            "MessageId": "57867db4-aba7-4dd5-a680-afd257f15def",
+            "ReceiptHandle": "receipt-handle-1",
+            "MD5OfBody": "f733a5647bbd26c40635ee370c29ffe5",
+            "Body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"us-east-1\", \"eventTime\": \"2024-10-06T09:03:35.392Z\", \"eventName\": \"ObjectCreated:Put\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"134eba25\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"4f980982\", \"bucket\": {\"name\": \"medallion-lakehouse-s3bronze\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::medallion-lakehouse-s3bronze\"}, \"object\": {\"key\": \"2024/10/02/job_328e430e-2569-46f2-8ca7-2fd8eb7f1549/raw-3.json\", \"sequencer\": \"0055AED6DCD90281E5\", \"eTag\": \"5fff5c0e3839dbacd5029103b4beace8\", \"size\": 469}}}]}"
+        },
+        {
+            "MessageId": "3dbde258-b05d-484b-a796-700bbd0d6368",
+            "ReceiptHandle": "receipt-handle-2",
+            "MD5OfBody": "a24787282df48042750f2fd974d457fd",
+            "Body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"us-east-1\", \"eventTime\": \"2024-10-06T09:03:35.424Z\", \"eventName\": \"ObjectCreated:Put\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"628a2258\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"4f980982\", \"bucket\": {\"name\": \"medallion-lakehouse-s3bronze\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::medallion-lakehouse-s3bronze\"}, \"object\": {\"key\": \"2024/10/02/job_328e430e-2569-46f2-8ca7-2fd8eb7f1549/raw-4.json\", \"sequencer\": \"0055AED6DCD90281E5\", \"eTag\": \"529196c3bcec84573ee902c554728ee8\", \"size\": 508}}}]}"
+        }
+    ],
+    "ResponseMetadata": {
+        "RequestId": "56262e24-3de9-4b97-a7c4-db8f0279a040",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+            "server": "TwistedWeb/24.3.0",
+            "date": "Sun, 06 Oct 2024 09:06:28 GMT",
+            "content-type": "application/x-amz-json-1.0",
+            "content-length": "2995",
+            "x-amzn-requestid": "56262e24-3de9-4b97-a7c4-db8f0279a040"
+        },
+        "RetryAttempts": 0
+    }
+}

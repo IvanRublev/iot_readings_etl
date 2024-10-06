@@ -15,20 +15,48 @@ Parameters:
     Default: s3bronze
     Description: Name of the S3 Bronze bucket
 
-  FilesProcessorMaxConcurrency:
+  FilesProcessorFunctionTimeout:
+    Type: Number
+    Default: 300
+    Description: Maximum time to run S3BronzeLambdaPoolingFunction in seconds
+
+  S3BronzeLambdaPoolingFunctionMaximumBatchingWindowInSeconds:
+    Type: Number
+    Default: 10
+    Description: >-
+      Maximum Raw data files events batching window in seconds for file events pooling lambda.
+      Should be long enough for batch of FilesProcessorMaxConcurrency * RawDataFilesPerFilesProcessor
+      messages to appear in SQS queue.
+
+  S3BronzeLambdaPoolingFunctionReservedConcurrency:
+    Type: Number
+    Default: 1
+    Description: >-
+      Reserved concurrency for file events pooling lambda, because it's lower that
+      S3BronzeLambdaPoolingFunctionMaxSQSConcurrency it triggers SQS overpull
+      https://zaccharles.medium.com/lambda-concurrency-limits-and-sqs-triggers-dont-mix-well-sometimes-eb23d90122e0
+      but we do it intentionally to have only one ParquetFilesProcessorFunction instance running
+      for a job, to construct only one set of daily Parquet files.
+
+  S3BronzeLambdaPoolingFunctionMaxSQSConcurrency:
     Type: Number
     Default: 2
+    Description: >-
+      Max concurrency for triggering S3BronzeLambdaPoolingFunction by SQS messages,
+      can't be less than 2 due to AWS constraint
+  
+  # Three following parameters define data processing bandwidth
+
+  FilesProcessorMaxConcurrency:
+    Type: Number
+    Default: 4
     Description: Max concurrency for Raw data FilesProcessor execution in step function
 
   RawDataFilesPerFilesProcessor:
     Type: Number
-    Default: 5 # Adjust S3BronzeLambdaPoolingFunction.Timeout according to the time of processing this amount of files
+    Default: 20 # Adjust FilesProcessorFunctionTimeout according to the time of processing this amount of files
     Description: Number of Raw data files to be processed by each FilesProcessor
 
-  RawSQSQueueBatchSize:
-    Type: Number
-    Default: 10
-    Description: Batch size for Raw data file event messages, should equal FilesProcessorMaxConcurrency * RawDataFilesPerFilesProcessor
 
 Globals:
   Function:
@@ -64,7 +92,7 @@ Resources:
       MaximumMessageSize: 262144
       MessageRetentionPeriod: 345600
       ReceiveMessageWaitTimeSeconds: 0
-      VisibilityTimeout: 5
+      VisibilityTimeout: !Ref FilesProcessorFunctionTimeout
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt RawSQSDeadLetterQueue.Arn
         maxReceiveCount: 3
@@ -85,8 +113,8 @@ Resources:
       Handler: s3bronze_file_events_pooling.lambda_handler
       Runtime: python3.9
       MemorySize: 256
-      ReservedConcurrentExecutions: 4 # Make sure it's greater than SQSEvent.MaximumConcurrency to avoid SQS overpull
-      Timeout: 60
+      ReservedConcurrentExecutions: !Ref S3BronzeLambdaPoolingFunctionReservedConcurrency
+      Timeout: !Ref FilesProcessorFunctionTimeout
       Policies:
         - SQSPollerPolicy:
             QueueName: !GetAtt RawSQSQueue.QueueName
@@ -114,18 +142,19 @@ Resources:
       Environment:
         Variables:
           DATA_PROCESSING_STATE_MACHINE_ARN: !GetAtt DataAssetProcessingStateMachine.Arn
-          RAW_DATA_FILES_PER_FILES_PROCESSOR: !Ref RawDataFilesPerFilesProcessor
+          FILE_PROCESSORS_COUNT: !Ref FilesProcessorMaxConcurrency
+          RAW_DATA_FILES_PER_PROCESSOR: !Ref RawDataFilesPerFilesProcessor
+          RAW_DATA_FILES_SQS_QUEUE_URL: !GetAtt RawSQSQueue.QueueUrl
+          MAXIMUM_BATCHING_WINDOW_IN_SECONDS: !Ref S3BronzeLambdaPoolingFunctionMaximumBatchingWindowInSeconds
       Events:
         SQSEvent:
           Type: SQS
           Properties:
             Queue: !GetAtt RawSQSQueue.Arn
-            BatchSize: !Ref RawSQSQueueBatchSize
-            # Set the following value to the time uploader script takes to upload 
-            # initial RawSQSQueueBatchSize count of Raw data files to s3bronze bucket.
-            MaximumBatchingWindowInSeconds: 1
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0 # We wait for messages batch in file events pooling lambda
             ScalingConfig:
-              MaximumConcurrency: 2
+              MaximumConcurrency: !Ref S3BronzeLambdaPoolingFunctionMaxSQSConcurrency
 
   # Step Function for data asset processing
   DataAssetProcessingStateMachine:
@@ -167,7 +196,7 @@ Resources:
       Handler: files_processor.lambda_handler
       Runtime: python3.9
       MemorySize: 300
-      Timeout: 60
+      Timeout: !Ref FilesProcessorFunctionTimeout
       Environment:
         Variables:
           RAW_DATA_FILES_BUCKET_NAME: !Ref S3Bronze
@@ -199,7 +228,7 @@ Resources:
         Handler: parquet_files_processor.lambda_handler
         Runtime: python3.9
         MemorySize: 512
-        Timeout: 60
+        Timeout: !Ref FilesProcessorFunctionTimeout
         Environment:
           Variables:
             PARQUET_FILES_BUCKET_NAME: !Ref S3Silver

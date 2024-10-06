@@ -24,6 +24,9 @@ def temp_dir():
         yield tmpdirname
 
 
+# Lambda handler tests
+
+
 def test_pass_lambda_handler_given_no_files_returns_empty_list():
     assert lambda_handler([], {}) == []
 
@@ -145,6 +148,9 @@ def test_pass_lambda_handler_given_chunked_parquet_files_removes_source_and_dail
 
     assert not os.path.exists(os.path.join(temp_dir, "source_files"))
     assert not os.path.exists(os.path.join(temp_dir, "daily_files"))
+
+
+# Chunked parquet key parts tests
 
 
 def test_pass_chunked_parquet_key_parts_given_parquet_file_key_returns_job_bucket_product_day():

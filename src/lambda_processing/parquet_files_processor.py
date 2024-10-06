@@ -37,6 +37,8 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
     daily_path = os.path.join(temp_dir, "daily_files")
     uploaded_file_keys = []
 
+    print(f"Assembling daily Parquet files for {len(source_key_by_jbpd)} items.")
+
     for jbpd_parts, source_keys in source_key_by_jbpd.items():
         print(f"Downloading {len(source_keys)} Parquet files from s3://{bucket_name}")
         downloaded_files = []
@@ -54,7 +56,7 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
         daily_parquet_path = os.path.join(daily_path, target_key)
         os.makedirs(os.path.dirname(daily_parquet_path), exist_ok=True)
 
-        print(f"Writing {daily_parquet_path}")
+        print(f"Writing {os.path.basename(daily_parquet_path)}")
         write_options = ds.ParquetFileFormat().make_write_options(compression="snappy")
         ds.write_dataset(
             joined_dataset,
@@ -66,9 +68,11 @@ def lambda_handler(chunked_parquet_files, context, s3_client=None, temp_dir=None
             max_rows_per_group=MAX_ROWS_PER_GROUP,
         )
 
-        print(f"Uploading {os.path.basename(daily_parquet_path)} to s3://{bucket_name}")
+        print(f"Uploading {os.path.basename(daily_parquet_path)} for {product} to s3://{bucket_name}")
         keys = upload_directory_to_s3(s3_client, daily_parquet_path, bucket_name, target_key)
         uploaded_file_keys.extend(keys)
+
+    print("Finished assembling daily Parquet files.")
 
     # Remove source and generated daily files
     if cleanup_on_finish:

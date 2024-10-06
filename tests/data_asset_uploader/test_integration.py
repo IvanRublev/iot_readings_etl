@@ -11,7 +11,7 @@ from data_asset_uploader.raw_data_files_S3_uploader import upload_raw_data
 from tests.factories import build_data_asset, dump_raw_data_file
 
 
-S3_FILE_CREATION_WAIT_MILLISECONDS = 200
+S3_FILE_CREATION_WAIT_MILLISECONDS = 500
 AWS_ACCESS_KEY_ID = os.environ["DOWNLOADER_AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = os.environ["DOWNLOADER_AWS_SECRET_ACCESS_KEY"]
 PARQUET_BUCKET = os.environ["DOWNLOADER_DAILY_PARQUET_BUCKET_NAME"]

@@ -16,6 +16,7 @@ setup(
             "pytest-timeout>=2.3.1",
             "pytest-freezegun>=0.4.2",
             "faker>=30.1.0",
+            "tqdm>=4.66.5",
         ],
     },
     install_requires=[

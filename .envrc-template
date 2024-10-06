@@ -1,6 +1,5 @@
 export DEBUG=1
 export ENFORCE_IAM=1
-export LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT=60
 export LOCALSTACK_AUTH_TOKEN=<<your localstack pro Personal Auth Token>>
 
 export AWS_ENDPOINT_URL=http://localhost:4566
