@@ -124,7 +124,7 @@ def main():
         for i in range(args.warmup[0], args.warmup[1] + 1, args.warmup[0]):
             files_count = i
             print(
-                f"{i // args.warmup[0]}/{args.warmup[1] // args.warmup[0]} Processing {files_count} files for warmup..."
+                f"\n{i // args.warmup[0]}/{args.warmup[1] // args.warmup[0]} Processing {files_count} files for warmup..."
             )
             if args.raw_data_directory:
                 generate_stress_test_data(

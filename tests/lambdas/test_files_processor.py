@@ -68,7 +68,52 @@ def test_pass_lambda_handler_given_file_list_uploads_appropriate_parquet_directo
     invocation_id = "3FDE7B3B"
 
     uploaded_file_keys = lambda_handler(
-        [f"2024/10/03/{job_subdirectory}/raw-1.json"], {}, mock_s3_client, temp_dir, invocation_id
+        [f"2024/10/03/{job_subdirectory}/raw-1.json"],
+        {},
+        mock_s3_client,
+        temp_dir,
+        invocation_id,
+    )
+
+    assert mock_s3_client.upload_file.call_count == 1
+    file_path = os.path.join(
+        temp_dir,
+        "generated_files",
+        job_subdirectory,
+        RAW_DATA_FILES_BUCKET_NAME,
+        "mars",
+        f"2024-09-30T13_45m-{invocation_id}.parquet",
+        "part-0.parquet",
+    )
+    file_key = os.path.join(
+        "15min_chunks",
+        job_subdirectory,
+        RAW_DATA_FILES_BUCKET_NAME,
+        "mars",
+        f"2024-09-30T13_45m-{invocation_id}.parquet",
+        "part-0.parquet",
+    )
+    mock_s3_client.upload_file.assert_any_call(file_path, PARQUET_FILES_BUCKET_NAME, file_key)
+    assert uploaded_file_keys == [file_key]
+
+
+def test_pass_lambda_handler_given_duplicate_files_aggregates_them_into_single_15min_parquet(temp_dir):
+    # Create a Raw data file that the lambda handler would have downloaded
+    data_asset = build_data_asset(dataAsset="mars", timestamp="2024-09-30T13:44:01.000Z")
+    job_subdirectory = "job_842d6e1c-0630-4af8-a3e1-8d18a24ce805"
+    file_path = os.path.join(temp_dir, "source_files", RAW_DATA_FILES_BUCKET_NAME, job_subdirectory, "raw-1.json")
+    dump_raw_data_file([data_asset], file_path)
+
+    mock_s3_client = MagicMock()
+    mock_s3_client.download_file.return_value = None
+    invocation_id = "3FDE7B3B"
+
+    uploaded_file_keys = lambda_handler(
+        [f"2024/10/03/{job_subdirectory}/raw-1.json"] * 3,
+        {},
+        mock_s3_client,
+        temp_dir,
+        invocation_id,
     )
 
     assert mock_s3_client.upload_file.call_count == 1

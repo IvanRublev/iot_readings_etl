@@ -50,6 +50,7 @@ def lambda_handler(files_list, context, s3_client=None, temp_dir=None, invocatio
     # Upload parquet files when all of them are ready, to avoid partial uploads
     destination_bucket = os.environ["PARQUET_FILES_BUCKET_NAME"]
     uploaded_file_keys = []
+    directory_paths_to_upload = list(dict.fromkeys(directory_paths_to_upload))
     print(f"Uploading {len(directory_paths_to_upload)} items of 15min Parquet files to s3://{destination_bucket}")
     for directory_path in directory_paths_to_upload:
         file_key_prefix = os.path.relpath(directory_path, generated_files_directory)

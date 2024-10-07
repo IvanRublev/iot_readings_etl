@@ -9,7 +9,7 @@ def build_data_asset(**kwargs):
     faker = Faker()
     timestamp = faker.iso8601()
     planet = random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune", "pluto"])
-    readings = {f"value{i}": random.randint(0, 100) for i in range(1, random.randint(0, 100))}
+    readings = {f"value{i}": random.randint(0, 100) for i in range(3, random.randint(0, 100))}
 
     return strict_merge(
         {
