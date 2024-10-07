@@ -199,7 +199,7 @@ def test_pass_dump_to_parqeut_given_existing_parquet_and_new_data_asset_keys_ext
     data_asset_1 = build_data_asset(
         dataAsset="mars", timestamp="2024-09-30T13:40:01.000Z", iotreadings={"value1": 1, "value2": 4}
     )
-    data_asset_2 = build_data_asset(dataAsset="mars", timestamp="2024-09-30T13:43:00.000Z", iotreadings={"value3": 7})
+    data_asset_2 = build_data_asset(dataAsset="mars", timestamp="2024-09-30T13:43:00.000Z", iotreadings={"value9": 7})
     data_asset_3 = build_data_asset(dataAsset="mars", timestamp="2024-09-30T13:44:00.000Z", iotreadings={"value1": 2})
 
     dump_to_parquet([data_asset_1], output_path, "5F5E7A8B")
@@ -212,17 +212,17 @@ def test_pass_dump_to_parqeut_given_existing_parquet_and_new_data_asset_keys_ext
     row1 = read_df[read_df["timestamp"] == "2024-09-30T13:40:01.000Z"].iloc[0]
     assert row1["iotreadings_value1"] == 1
     assert row1["iotreadings_value2"] == 4
-    assert pd.isna(row1["iotreadings_value3"])
+    assert pd.isna(row1["iotreadings_value9"])
 
     row2 = read_df[read_df["timestamp"] == "2024-09-30T13:43:00.000Z"].iloc[0]
     assert pd.isna(row2["iotreadings_value1"])
     assert pd.isna(row2["iotreadings_value2"])
-    assert row2["iotreadings_value3"] == 7
+    assert row2["iotreadings_value9"] == 7
 
     row3 = read_df[read_df["timestamp"] == "2024-09-30T13:44:00.000Z"].iloc[0]
     assert row3["iotreadings_value1"] == 2
     assert pd.isna(row3["iotreadings_value2"])
-    assert pd.isna(row3["iotreadings_value3"])
+    assert pd.isna(row3["iotreadings_value9"])
 
 
 # Normalize data asset tests

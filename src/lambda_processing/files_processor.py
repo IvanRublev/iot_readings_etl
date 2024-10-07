@@ -89,33 +89,37 @@ def dump_to_parquet(data_assets, output_directory_path, invocation_id):
             asset_per_file_path[file_path] = [data_asset]
 
     for file_path, assets in asset_per_file_path.items():
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        for asset in assets:
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        table = pa.Table.from_pylist(assets)
-        append_dataset = ds.dataset(table)
+            table = pa.Table.from_pylist([asset])
+            append_dataset = ds.dataset(table)
 
-        original_file_path = None
-        if os.path.exists(file_path):
-            original_file_path = file_path + ".orig"
-            os.rename(file_path, original_file_path)
-            original_dataset = ds.dataset(original_file_path, format="parquet")
-            joined_dataset = ds.dataset([original_dataset, append_dataset])
-        else:
-            joined_dataset = append_dataset
+            original_file_path = None
+            schema = None
+            if os.path.exists(file_path):
+                original_file_path = file_path + ".orig"
+                os.rename(file_path, original_file_path)
+                original_dataset = ds.dataset(original_file_path, format="parquet")
+                joined_dataset = ds.dataset([original_dataset, append_dataset])
+                schema = pa.unify_schemas([original_dataset.schema, append_dataset.schema])
+            else:
+                joined_dataset = append_dataset
 
-        write_options = ds.ParquetFileFormat().make_write_options(compression="snappy")
-        ds.write_dataset(
-            joined_dataset,
-            file_path,
-            format="parquet",
-            basename_template="part-{i}.parquet",
-            existing_data_behavior="overwrite_or_ignore",
-            file_options=write_options,
-            max_rows_per_file=MAX_ROWS_PER_FILE,
-            max_rows_per_group=MAX_ROWS_PER_GROUP,
-        )
-        if original_file_path:
-            shutil.rmtree(original_file_path)
+            write_options = ds.ParquetFileFormat().make_write_options(compression="snappy")
+            ds.write_dataset(
+                joined_dataset,
+                file_path,
+                format="parquet",
+                basename_template="part-{i}.parquet",
+                existing_data_behavior="overwrite_or_ignore",
+                file_options=write_options,
+                max_rows_per_file=MAX_ROWS_PER_FILE,
+                max_rows_per_group=MAX_ROWS_PER_GROUP,
+                schema=schema,
+            )
+            if original_file_path:
+                shutil.rmtree(original_file_path)
 
     return list(asset_per_file_path.keys())
 
